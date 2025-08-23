@@ -7,23 +7,21 @@ import LandingPage1 from "./assets/LandingPage1.png";
 import LandingPage2 from "./assets/LandingPage2.png";
 import LandingPage3 from "./assets/LandingPage3.png";
 import LoginPage from './components/LoginPage';
-import { BrowserRouter as Router, Routes, Route, useNavigate } from 'react-router-dom';
+import SignupPage from './components/SignupPage';
+import { BrowserRouter as Router, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import AOS from 'aos';
 import 'aos/dist/aos.css';
 
-// Font imports (ensure these are loaded in your index.html or via @fontsource in your project)
-// Example: import '@fontsource/cormorant-garamond/500.css'; import '@fontsource/inter/400.css';
-
 const theme = createTheme({
   palette: {
-    primary: { main: '#1A4D2E' }, // Deep Green (Brand)
-    secondary: { main: '#27AE60' }, // Green
-    accent: { main: '#F2994A' }, // Orange
-    teal: { main: '#1ABC9C' }, // Teal
+    primary: { main: '#1A4D2E' },
+    secondary: { main: '#27AE60' },
+    accent: { main: '#F2994A' },
+    teal: { main: '#1ABC9C' },
     background: { default: '#F9FAFB', paper: '#FFFFFF' },
     text: {
-      primary: '#1C1C1C', // Dark Gray
-      secondary: '#828282', // Medium Gray
+      primary: '#1C1C1C',
+      secondary: '#828282',
     },
     success: { main: '#27AE60' },
     warning: { main: '#F2C94C' },
@@ -107,21 +105,22 @@ const theme = createTheme({
 });
 
 function App() {
+  const location = useLocation();
   useEffect(() => {
-    AOS.init({ duration: 900, once: true });
-  }, []);
+    AOS.init({ duration: 900, once: false });
+    AOS.refresh();
+  }, [location]);
 
   return (
-    <Router>
-      <ThemeProvider theme={theme}>
-        <CssBaseline />
-        <NavbarWithLogin />
-        <Routes>
-          <Route path="/" element={<LandingPageContent />} />
-          <Route path="/login" element={<LoginPage />} />
-        </Routes>
-      </ThemeProvider>
-    </Router>
+    <ThemeProvider theme={theme}>
+      <CssBaseline />
+      <NavbarWithLogin />
+      <Routes>
+        <Route path="/" element={<LandingPageContent />} />
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/signup" element={<SignupPage />} />
+      </Routes>
+    </ThemeProvider>
   );
 }
 
@@ -172,8 +171,9 @@ function NavbarWithLogin() {
               textTransform: 'none',
               boxShadow: 'none',
             }}
+            onClick={() => navigate('/signup')}
           >
-            SIGN UP
+            Sign up
           </Button>
         </Box>
       </Toolbar>
@@ -184,7 +184,7 @@ function NavbarWithLogin() {
 function LandingPageContent() {
   return (
     <>
-      {/* Hero Section - Dribbble Style */}
+      {/* Hero Section */}
       <Box sx={{ bgcolor: 'background.default', py: { xs: 8, md: 12 }, minHeight: '80vh' }}>
         <Container maxWidth="lg">
           <Grid container spacing={6} alignItems="center" justifyContent="space-between" direction={{ xs: 'column', md: 'row' }}>
@@ -240,7 +240,7 @@ function LandingPageContent() {
         </Container>
       </Box>
 
-      {/* New Features Section (clean, no cards, images top, text below, one row) */}
+      {/* Features Section */}
       <Box sx={{ bgcolor: "background.default", py: 8 }}>
         <Container maxWidth="lg">
           <Box sx={{ textAlign: "center", mb: 2 }}>
@@ -297,4 +297,12 @@ function LandingPageContent() {
   );
 }
 
-export default App;
+function AppWithRouter() {
+  return (
+    <Router>
+      <App />
+    </Router>
+  );
+}
+
+export default AppWithRouter;
