@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box, Typography, Button, Paper, IconButton, Avatar, List, ListItem, ListItemAvatar, ListItemText, Grid
 } from '@mui/material';
@@ -10,49 +10,48 @@ import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, PointElement,
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, PointElement, LineElement, ArcElement, Tooltip, Legend);
 
-// Dummy Data
-const balance = 31180.24;
-const cards = [
-  { type: 'Mastercard', number: '**** 4455', name: 'Jack Walson', color: '#e3eafe' },
-  { type: 'Visa', number: '**** 1599', name: 'Jack Walson', color: '#e6f6f0' },
-];
-const spendingData = {
-  labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
-  datasets: [
-    {
-      label: 'Spending',
-      data: [400, 600, 500, 700, 800, 650, 900, 750, 820, 1020, 900, 625],
-      backgroundColor: '#1A4D2E',
-      borderRadius: 8,
-      barThickness: 18,
-    },
-  ],
-};
-const expensesData = {
-  labels: ['1 Dec', '2 Dec', '3 Dec', '4 Dec', '5 Dec', '6 Dec', '7 Dec', '8 Dec', '9 Dec', '10 Dec'],
-  datasets: [
-    {
-      label: 'Expenses',
-      data: [2000, 4000, 3000, 6000, 8000, 10245, 7000, 9000, 8500, 9500],
-      fill: true,
-      borderColor: '#1A4D2E',
-      backgroundColor: 'rgba(26,77,46,0.08)',
-      tension: 0.4,
-      pointRadius: 0,
-    },
-  ],
-};
-const transactions = [
-  { name: 'Apple Inc', date: '30 min ago', amount: -45.0 },
-  { name: 'Jerry Helfer', date: '12 Dec 2024', amount: 120.0 },
-  { name: 'Dribbble', date: '11 Dec 2024', amount: -350.0 },
-  { name: 'Ekra Food', date: '09 Dec 2024', amount: -452.0 },
-  { name: 'Paypal Payment', date: '04 Dec 2024', amount: 102.0 },
-];
-const creditScore = 1620;
+
+function getUserId() {
+  try {
+    const user = JSON.parse(localStorage.getItem('budgro_user'));
+    return user?.id || user?._id || null;
+  } catch {
+    return null;
+  }
+}
 
 export default function Dashboard() {
   const [showAllTxs, setShowAllTxs] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState({
+    balance: 0,
+    spending: Array(12).fill(0),
+    expenses: [],
+    creditScore: 0,
+    transactions: []
+  });
+
+  useEffect(() => {
+    const userId = getUserId();
+    if (!userId) return;
+    setLoading(true);
+    fetch(`http://localhost:3003/dashboard/${userId}`)
+      .then(res => res.json())
+      .then(data => {
+        setStats({
+          balance: data.balance ?? 0,
+          spending: data.spending ?? Array(12).fill(0),
+          expenses: data.expenses ?? [],
+          creditScore: data.creditScore ?? 0,
+          transactions: data.transactions ?? []
+        });
+        setLoading(false);
+      })
+      .catch(() => {
+        setStats({ balance: 0, spending: Array(12).fill(0), expenses: [], creditScore: 0, transactions: [] });
+        setLoading(false);
+      });
+  }, []);
 
   return (
     <Box
@@ -64,6 +63,7 @@ export default function Dashboard() {
         px: { xs: 1, md: 4 },
       }}
     >
+      {loading && <Typography sx={{ textAlign: 'center', mt: 8, color: '#1A4D2E', fontWeight: 600 }}>Loading your dashboard...</Typography>}
       <Grid container spacing={3} justifyContent="center" alignItems="flex-start" maxWidth="lg" mx="auto">
         {/* Left Column */}
         <Grid item xs={12} md={8}>
@@ -73,7 +73,7 @@ export default function Dashboard() {
               <Box sx={{ borderRadius: 0, p: 0, background: 'none' }}>
                 <Typography variant="subtitle2" color="#7a8fa6" fontWeight={500} fontFamily="Inter">Total Balance</Typography>
                 <Typography variant="h3" fontWeight={700} color="#1A4D2E" sx={{ fontFamily: 'Cormorant Garamond, serif', mt: 1 }}>
-                  ${balance.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                  ₹{stats.balance.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                 </Typography>
                 <Box sx={{ display: 'flex', gap: 2, mt: 2 }}>
                   <Button variant="contained" color="primary" sx={{ borderRadius: 3, textTransform: 'none', fontWeight: 600, px: 3 }}>Send</Button>
@@ -81,16 +81,12 @@ export default function Dashboard() {
                 </Box>
                 {/* My Cards - no card backgrounds */}
                 <Box sx={{ display: 'flex', gap: 4, mt: 4, alignItems: 'flex-end' }}>
-                  {cards.map((card, idx) => (
-                    <Box key={idx} sx={{ minWidth: 120, flex: 1, p: 0 }}>
-                      <Typography variant="body2" color="#7a8fa6" fontWeight={500}>{card.type}</Typography>
-                      <Box sx={{ my: 1, height: 24, background: 'url(https://svgshare.com/i/13kN.svg) no-repeat center/contain' }} />
-                      <Typography variant="h6" fontWeight={700} color="#1A4D2E">{card.number}</Typography>
-                      <Typography variant="caption" color="#7a8fa6">{card.name}</Typography>
-                    </Box>
-                  ))}
-                  <Box sx={{ minWidth: 60, display: 'flex', alignItems: 'center', justifyContent: 'center', height: 60 }}>
-                    <IconButton color="primary" size="large" sx={{ background: 'none', p: 0 }}><AddIcon /></IconButton>
+                  {/* Cards UI can be enhanced later. For now, show user's name and a placeholder card */}
+                  <Box sx={{ minWidth: 120, flex: 1, p: 0 }}>
+                    <Typography variant="body2" color="#7a8fa6" fontWeight={500}>Card</Typography>
+                    <Box sx={{ my: 1, height: 24, background: 'url(https://svgshare.com/i/13kN.svg) no-repeat center/contain' }} />
+                    <Typography variant="h6" fontWeight={700} color="#1A4D2E">**** 0000</Typography>
+                    <Typography variant="caption" color="#7a8fa6">User</Typography>
                   </Box>
                 </Box>
               </Box>
@@ -105,7 +101,18 @@ export default function Dashboard() {
                   </Box>
                   <Box sx={{ height: 120, mt: 1 }}>
                     <Bar
-                      data={spendingData}
+                      data={{
+                        labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+                        datasets: [
+                          {
+                            label: 'Spending',
+                            data: stats.spending,
+                            backgroundColor: '#1A4D2E',
+                            borderRadius: 8,
+                            barThickness: 18,
+                          },
+                        ],
+                      }}
                       options={{
                         plugins: { legend: { display: false } },
                         scales: {
@@ -117,7 +124,9 @@ export default function Dashboard() {
                       }}
                     />
                   </Box>
-                  <Typography variant="h6" fontWeight={700} color="#1A4D2E" sx={{ mt: 1 }}>$6250.00</Typography>
+                  <Typography variant="h6" fontWeight={700} color="#1A4D2E" sx={{ mt: 1 }}>
+                    ₹{stats.spending.reduce((a, b) => a + b, 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                  </Typography>
                 </Box>
                 <Box sx={{ borderRadius: 0, p: 0, background: 'none', minHeight: 60, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
                   <Typography variant="subtitle2" color="#1A4D2E" fontWeight={600} fontFamily="Inter">How To Manage Money Well?</Typography>
@@ -134,7 +143,23 @@ export default function Dashboard() {
                 </Box>
                 <Box sx={{ height: 180, mt: 1 }}>
                   <Line
-                    data={expensesData}
+                    data={{
+                      labels: stats.expenses.map((e) => {
+                        const d = new Date(e.date);
+                        return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                      }),
+                      datasets: [
+                        {
+                          label: 'Expenses',
+                          data: stats.expenses.map(e => e.amount),
+                          fill: true,
+                          borderColor: '#1A4D2E',
+                          backgroundColor: 'rgba(26,77,46,0.08)',
+                          tension: 0.4,
+                          pointRadius: 0,
+                        },
+                      ],
+                    }}
                     options={{
                       plugins: { legend: { display: false } },
                       scales: {
@@ -162,17 +187,17 @@ export default function Dashboard() {
                 </Button>
               </Box>
               <List disablePadding sx={{ maxHeight: showAllTxs ? 400 : 160, overflow: 'hidden', transition: 'max-height 0.3s' }}>
-                {(showAllTxs ? transactions : transactions.slice(0, 2)).map((tx, idx) => (
+                {(showAllTxs ? stats.transactions : stats.transactions.slice(0, 2)).map((tx, idx) => (
                   <ListItem key={idx} disableGutters sx={{ mb: 1, borderRadius: 2, px: 1, background: 'none' }}>
                     <ListItemAvatar>
-                      <Avatar sx={{ bgcolor: '#1A4D2E', width: 36, height: 36, fontSize: 18 }}>{tx.name[0]}</Avatar>
+                      <Avatar sx={{ bgcolor: '#1A4D2E', width: 36, height: 36, fontSize: 18 }}>{tx.name?.[0] || 'T'}</Avatar>
                     </ListItemAvatar>
                     <ListItemText
-                      primary={<Typography fontWeight={600} color="#1A4D2E">{tx.name}</Typography>}
-                      secondary={<Typography variant="caption" color="#7a8fa6">{tx.date}</Typography>}
+                      primary={<Typography fontWeight={600} color="#1A4D2E">{tx.name || 'Transaction'}</Typography>}
+                      secondary={<Typography variant="caption" color="#7a8fa6">{tx.date ? new Date(tx.date).toLocaleString() : ''}</Typography>}
                     />
                     <Typography fontWeight={700} color={tx.amount < 0 ? '#e74c3c' : '#1A4D2E'}>
-                      {tx.amount < 0 ? '-' : '+'}${Math.abs(tx.amount).toFixed(2)}
+                      {tx.amount < 0 ? '-' : '+'}₹{Math.abs(tx.amount || 0).toFixed(2)}
                     </Typography>
                   </ListItem>
                 ))}
@@ -190,7 +215,7 @@ export default function Dashboard() {
                   <path d="M10,55 A50,50 0 0,1 110,55" fill="none" stroke="#e6f6f0" strokeWidth="12" />
                   <path d="M10,55 A50,50 0 0,1 110,55" fill="none" stroke="#1A4D2E" strokeWidth="10" strokeDasharray="80 100" />
                 </svg>
-                <Typography variant="h4" fontWeight={700} color="#1A4D2E">{creditScore}</Typography>
+                <Typography variant="h4" fontWeight={700} color="#1A4D2E">{stats.creditScore}</Typography>
                 <Typography variant="body2" color="#7a8fa6">Excellent</Typography>
               </Box>
               <Button size="small" sx={{ color: '#1A4D2E', fontWeight: 600, textTransform: 'none', mt: 1 }}>Explore Benefits</Button>

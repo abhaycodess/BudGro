@@ -17,6 +17,7 @@ import DashboardRoute from './routes/DashboardRoute';
 import About from './components/AboutPage';
 import WhyUsPage from './components/WhyUsPage';
 import BlogPage from './components/BlogPage';
+import ExpensePage from './components/ExpensePage';
 import { BrowserRouter as Router, Routes, Route, useNavigate, useLocation, Link } from 'react-router-dom';
 import AOS from 'aos';
 import 'aos/dist/aos.css';
@@ -28,25 +29,6 @@ const theme = createTheme({
     accent: { main: '#F2994A' },
     teal: { main: '#1ABC9C' },
     background: { default: '#F9FAFB', paper: '#FFFFFF' },
-    text: {
-      primary: '#1C1C1C',
-      secondary: '#828282',
-    },
-    success: { main: '#27AE60' },
-    warning: { main: '#F2C94C' },
-    error: { main: '#EB5757' },
-  },
-  typography: {
-    fontFamily: 'Inter, Arial, sans-serif',
-    fontWeightRegular: 400,
-    fontWeightMedium: 500,
-    fontWeightBold: 700,
-    h1: {
-      fontFamily: 'Cormorant Garamond, serif',
-      fontWeight: 600,
-      fontSize: '2rem',
-      lineHeight: 1.2,
-    },
     h2: {
       fontFamily: 'Cormorant Garamond, serif',
       fontWeight: 600,
@@ -128,9 +110,14 @@ function App() {
         <Route path="/" element={<LandingPageContent />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/signup" element={<SignupPage />} />
-  <Route path="/dashboard" element={
+        <Route path="/dashboard" element={
           <ProtectedRoute>
             <DashboardRoute />
+          </ProtectedRoute>
+        } />
+        <Route path="/expenses" element={
+          <ProtectedRoute>
+            <ExpensePage />
           </ProtectedRoute>
         } />
         <Route path="/account" element={
@@ -138,9 +125,9 @@ function App() {
             <AccountPage />
           </ProtectedRoute>
         } />
-  <Route path="/about" element={<About />} />
-  <Route path="/why-us" element={<WhyUsPage />} />
-  <Route path="/blog" element={<BlogPage />} />
+        <Route path="/about" element={<About />} />
+        <Route path="/why-us" element={<WhyUsPage />} />
+        <Route path="/blog" element={<BlogPage />} />
       </Routes>
     </ThemeProvider>
   );
@@ -150,23 +137,35 @@ function NavbarWithLogin() {
   const navigate = useNavigate();
   const [anchorEl, setAnchorEl] = React.useState(null);
   const open = Boolean(anchorEl);
-  // Get user info from localStorage (for demo, use email as username)
-  const isLoggedIn = localStorage.getItem('budgro_logged_in') === 'true';
-  // For demo, use dummy user email and name
-  const username = 'demo@budgro.com';
-  const name = 'Demo User';
-  // Use avatar from localStorage if available
+
+  // Get user info from localStorage (real user only)
+  const token = localStorage.getItem('budgro_token');
+  const user = (() => {
+    try {
+      return JSON.parse(localStorage.getItem('budgro_user'));
+    } catch {
+      return null;
+    }
+  })();
+  const isLoggedIn = !!token;
+  const username = user?.email || '';
+  const name = user?.name || '';
+  // Always generate avatar based on logged-in user's email unless a custom avatar is uploaded
   const [profilePic, setProfilePic] = React.useState(() => {
-    return localStorage.getItem('budgro_avatar') || `https://avatar.iran.liara.run/public/boy?username=${encodeURIComponent(username)}`;
+    return localStorage.getItem('budgro_avatar') || (username ? `https://avatar.iran.liara.run/public/boy?username=${encodeURIComponent(username)}` : undefined);
   });
 
   React.useEffect(() => {
-    const updateAvatar = () => {
-      setProfilePic(localStorage.getItem('budgro_avatar') || `https://avatar.iran.liara.run/public/boy?username=${encodeURIComponent(username)}`);
-    };
-    window.addEventListener('storage', updateAvatar);
-    return () => window.removeEventListener('storage', updateAvatar);
-  }, []);
+    // Update avatar if user changes or uploads a new one
+      // Update avatar when username or avatar in localStorage changes
+      const updateAvatar = () => {
+        setProfilePic(localStorage.getItem('budgro_avatar') || (username ? `https://avatar.iran.liara.run/public/boy?username=${encodeURIComponent(username)}` : undefined));
+      };
+      window.addEventListener('storage', updateAvatar);
+      // Also update on every render if avatar changes in this tab
+      updateAvatar();
+      return () => window.removeEventListener('storage', updateAvatar);
+  }, [username]);
 
   const handleMenu = (event) => {
     setAnchorEl(event.currentTarget);
@@ -175,7 +174,9 @@ function NavbarWithLogin() {
     setAnchorEl(null);
   };
   const handleLogout = () => {
-    localStorage.removeItem('budgro_logged_in');
+    localStorage.removeItem('budgro_token');
+    localStorage.removeItem('budgro_user');
+    localStorage.removeItem('budgro_avatar');
     handleClose();
     navigate('/login');
   };
@@ -184,7 +185,11 @@ function NavbarWithLogin() {
     <AppBar position="static" color="transparent" elevation={0} sx={{ boxShadow: 'none', background: 'transparent', pt: 2 }}>
       <Toolbar sx={{ maxWidth: 1200, mx: 'auto', width: '100%', minHeight: 72, px: { xs: 2, md: 4 } }}>
   <Box sx={{ display: 'flex', alignItems: 'center', flexGrow: 1 }}>
-    <Box component={Link} to="/" sx={{ display: 'flex', alignItems: 'center', textDecoration: 'none', cursor: 'pointer', mr: 4 }}>
+    <Box
+      component={Link}
+      to={isLoggedIn ? "/dashboard" : "/"}
+      sx={{ display: 'flex', alignItems: 'center', textDecoration: 'none', cursor: 'pointer', mr: 4 }}
+    >
       <img src={budgroLogo} alt="BUDGRO logo" style={{ height: 36, marginRight: 12 }} />
       <Typography variant="h5" color="text.primary" sx={{ fontFamily: 'Cormorant Garamond, serif', fontWeight: 600, letterSpacing: -1 }}>
         BUDGRO
@@ -200,6 +205,14 @@ function NavbarWithLogin() {
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, ml: 2 }}>
           {isLoggedIn ? (
             <>
+              <Button
+                component={Link}
+                to="/expenses"
+                color="inherit"
+                sx={{ fontFamily: 'Inter, Arial, sans-serif', fontWeight: 500, fontSize: 16, px: 2, minWidth: 0 }}
+              >
+                Expenses
+              </Button>
               <Tooltip title="Account settings">
                 <IconButton onClick={handleMenu} size="small" sx={{ ml: 2 }} aria-controls={open ? 'account-menu' : undefined} aria-haspopup="true" aria-expanded={open ? 'true' : undefined}>
                   <Avatar src={profilePic} alt={username} sx={{ width: 40, height: 40, border: '2px solid #1A4D2E' }} />
@@ -215,14 +228,15 @@ function NavbarWithLogin() {
                   elevation: 0,
                   sx: {
                     overflow: 'visible',
-                    mt: 1.5, // less margin to sit just below avatar
-                    minWidth: 210,
-                    maxWidth: 240,
-                    borderRadius: 4,
+                    mt: 1.5,
+                    minWidth: 220,
+                    maxWidth: 260,
+                    borderRadius: 1,
                     boxShadow: '0 8px 32px 0 rgba(26,77,46,0.14)',
                     p: 0,
                     bgcolor: '#fff',
                     fontFamily: 'Inter, Arial, sans-serif',
+                    border: 'none',
                   },
                 }}
                 transformOrigin={{ horizontal: 'center', vertical: 'top' }}
@@ -231,21 +245,21 @@ function NavbarWithLogin() {
               >
                 {/* User Info Section */}
                 <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', pt: 2, pb: 1, px: 2 }}>
-                  <Avatar src={profilePic} alt={name} sx={{ width: 48, height: 48, mb: 1, border: '2px solid #1A4D2E' }} />
-                  <Typography sx={{ fontWeight: 700, fontFamily: 'Cormorant Garamond, serif', color: '#1A4D2E', fontSize: 18, textAlign: 'center' }}>{name}</Typography>
+                  <Avatar src={profilePic} alt={name} sx={{ width: 56, height: 56, mb: 1, border: '2.5px solid #1A4D2E', boxShadow: '0 2px 12px rgba(26,77,46,0.08)' }} />
+                  <Typography sx={{ fontWeight: 700, fontFamily: 'Cormorant Garamond, serif', color: '#1A4D2E', fontSize: 19, textAlign: 'center', mb: 0.2 }}>{name}</Typography>
                   <Typography sx={{ color: '#7a8fa6', fontSize: 14, fontFamily: 'Inter, Arial, sans-serif', fontWeight: 500, textAlign: 'center' }}>{username}</Typography>
                 </Box>
-                {/* Menu Items - centered, no dividers */}
+                {/* Menu Items - centered, no hover effect */}
                 <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', py: 1 }}>
-                  <MenuItem onClick={() => { navigate('/dashboard'); }} sx={{ width: '90%', justifyContent: 'center', py: 1.2, fontWeight: 600, fontSize: 16, color: '#1A4D2E', fontFamily: 'Inter, Arial, sans-serif', gap: 1.5, borderRadius: 2, '&:hover': { bgcolor: '#e6f6f0', color: '#16381F' } }}>
+                  <MenuItem onClick={() => { navigate('/dashboard'); }} sx={{ width: '90%', justifyContent: 'center', py: 1.2, fontWeight: 600, fontSize: 16, color: '#1A4D2E', fontFamily: 'Inter, Arial, sans-serif', gap: 1.5, borderRadius: 2, transition: 'background 0.2s', background: 'none !important' }}>
                     <ListItemIcon sx={{ color: '#1A4D2E', minWidth: 30, display: 'flex', justifyContent: 'center' }}><DashboardIcon fontSize="small" /></ListItemIcon>
                     My Dashboard
                   </MenuItem>
-                  <MenuItem onClick={() => { navigate('/account'); }} sx={{ width: '90%', justifyContent: 'center', py: 1.2, fontWeight: 600, fontSize: 16, color: '#1A4D2E', fontFamily: 'Inter, Arial, sans-serif', gap: 1.5, borderRadius: 2, '&:hover': { bgcolor: '#e6f6f0', color: '#16381F' } }}>
+                  <MenuItem onClick={() => { navigate('/account'); }} sx={{ width: '90%', justifyContent: 'center', py: 1.2, fontWeight: 600, fontSize: 16, color: '#1A4D2E', fontFamily: 'Inter, Arial, sans-serif', gap: 1.5, borderRadius: 2, transition: 'background 0.2s', background: 'none !important' }}>
                     <ListItemIcon sx={{ color: '#1A4D2E', minWidth: 30, display: 'flex', justifyContent: 'center' }}><AccountCircleIcon fontSize="small" /></ListItemIcon>
                     My Account
                   </MenuItem>
-                  <MenuItem onClick={handleLogout} sx={{ width: '90%', justifyContent: 'center', py: 1.2, fontWeight: 600, fontSize: 16, color: '#1A4D2E', fontFamily: 'Inter, Arial, sans-serif', gap: 1.5, borderRadius: 2, '&:hover': { bgcolor: '#e6f6f0', color: '#16381F' } }}>
+                  <MenuItem onClick={handleLogout} sx={{ width: '90%', justifyContent: 'center', py: 1.2, fontWeight: 600, fontSize: 16, color: '#1A4D2E', fontFamily: 'Inter, Arial, sans-serif', gap: 1.5, borderRadius: 2, transition: 'background 0.2s', background: 'none !important' }}>
                     <ListItemIcon sx={{ color: '#1A4D2E', minWidth: 30, display: 'flex', justifyContent: 'center' }}><LogoutIcon fontSize="small" /></ListItemIcon>
                     Logout
                   </MenuItem>
@@ -296,6 +310,22 @@ function NavbarWithLogin() {
 }
 
 function LandingPageContent() {
+  const navigate = useNavigate();
+  const [email, setEmail] = React.useState('');
+  // If already logged in, redirect to dashboard
+  React.useEffect(() => {
+    const token = localStorage.getItem('budgro_token');
+    if (token) {
+      navigate('/dashboard', { replace: true });
+    }
+  }, [navigate]);
+
+  const handleGetStarted = () => {
+    if (email && email.includes('@')) {
+      navigate('/login', { state: { email } });
+    }
+  };
+
   return (
     <>
       {/* Hero Section */}
@@ -310,8 +340,20 @@ function LandingPageContent() {
                 Fast, user-friendly and engaging – turn finance into growth and clarity. Streamline your daily expense operations with your own branded app.
               </Typography>
               <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
-                <input type="email" placeholder="Enter work email" style={{ padding: '12px 16px', border: '1px solid #E0E0E0', borderRadius: 8, fontSize: 16, fontFamily: 'Inter, Arial, sans-serif', outline: 'none', flex: 1, minWidth: 0 }} />
-                <Button variant="contained" color="secondary" sx={{ fontWeight: 600, borderRadius: 2, px: 4, fontSize: 16, whiteSpace: 'nowrap', boxShadow: 'none', textTransform: 'none' }}>
+                <input
+                  type="email"
+                  placeholder="Enter work email"
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
+                  style={{ padding: '12px 16px', border: '1px solid #E0E0E0', borderRadius: 8, fontSize: 16, fontFamily: 'Inter, Arial, sans-serif', outline: 'none', flex: 1, minWidth: 0 }}
+                />
+                <Button
+                  variant="contained"
+                  color="secondary"
+                  sx={{ fontWeight: 600, borderRadius: 2, px: 4, fontSize: 16, whiteSpace: 'nowrap', boxShadow: 'none', textTransform: 'none' }}
+                  onClick={handleGetStarted}
+                  disabled={!email || !email.includes('@')}
+                >
                   Get Started
                 </Button>
               </Box>

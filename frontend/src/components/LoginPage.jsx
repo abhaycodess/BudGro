@@ -1,26 +1,63 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Box, Button, Container, Grid, TextField, Typography } from '@mui/material';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { Box, Button, Container, Grid, TextField, Typography, IconButton, InputAdornment } from '@mui/material';
+import Visibility from '@mui/icons-material/Visibility';
+import VisibilityOff from '@mui/icons-material/VisibilityOff';
 import LoginPageVector from '../assets/LoginPageVector.png';
 
-const DUMMY_USER = {
-  email: 'demo@budgro.com',
-  password: 'password123',
-};
+
 
 const LoginPage = () => {
+  const location = useLocation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
 
-  const handleSubmit = (e) => {
+  // Prefill email if passed from landing page
+  useEffect(() => {
+    if (location.state && location.state.email) {
+      setEmail(location.state.email);
+    }
+  }, [location.state]);
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (email === DUMMY_USER.email && password === DUMMY_USER.password) {
-      localStorage.setItem('budgro_logged_in', 'true');
-      navigate('/dashboard');
-    } else {
-      setError('Invalid credentials. Use demo@budgro.com / password123');
+    setError('');
+  // setLoading(true);
+    try {
+      const res = await fetch('http://localhost:3002/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      });
+      const data = await res.json();
+      if (res.ok && data.token) {
+        localStorage.setItem('budgro_token', data.token);
+        localStorage.setItem('budgro_user', JSON.stringify(data.user));
+        // Fetch latest avatar from backend
+        try {
+          const avatarRes = await fetch('http://localhost:3002/user/avatar', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: data.user.email })
+          });
+          const avatarData = await avatarRes.json();
+          if (avatarData.avatar) {
+            localStorage.setItem('budgro_avatar', avatarData.avatar);
+          } else {
+            localStorage.removeItem('budgro_avatar');
+          }
+        } catch {
+          // Ignore avatar fetch errors
+        }
+        navigate('/dashboard');
+      } else {
+        setError(data.error || 'Login failed');
+      }
+    } catch {
+      setError('Network error. Please try again.');
     }
   };
 
@@ -60,24 +97,43 @@ const LoginPage = () => {
                   required
                   variant="outlined"
                   margin="normal"
-                  sx={{ mb: 2, bgcolor: '#fff', borderRadius: 2 }}
+                  sx={{ mb: 2 }}
                   InputLabelProps={{ style: { fontFamily: 'Inter, Arial, sans-serif' } }}
                   inputProps={{ style: { fontFamily: 'Inter, Arial, sans-serif' } }}
                   value={email}
                   onChange={e => setEmail(e.target.value)}
+                  InputProps={{
+                    sx: { bgcolor: '#e9f2ff', borderRadius: 2 },
+                  }}
                 />
                 <TextField
                   label="Password"
-                  type="password"
+                  type={showPassword ? 'text' : 'password'}
                   fullWidth
                   required
                   variant="outlined"
                   margin="normal"
-                  sx={{ mb: 2, bgcolor: '#fff', borderRadius: 2 }}
+                  sx={{ mb: 2 }}
                   InputLabelProps={{ style: { fontFamily: 'Inter, Arial, sans-serif' } }}
                   inputProps={{ style: { fontFamily: 'Inter, Arial, sans-serif' } }}
                   value={password}
                   onChange={e => setPassword(e.target.value)}
+                  InputProps={{
+                    endAdornment: (
+                      <InputAdornment position="end">
+                        <IconButton
+                          aria-label={showPassword ? 'Hide password' : 'Show password'}
+                          onClick={() => setShowPassword((show) => !show)}
+                          edge="end"
+                          size="large"
+                          tabIndex={-1}
+                        >
+                          {showPassword ? <VisibilityOff /> : <Visibility />}
+                        </IconButton>
+                      </InputAdornment>
+                    ),
+                    sx: { bgcolor: '#e9f2ff', borderRadius: 2 },
+                  }}
                 />
                 {error && (
                   <Typography color="error" sx={{ mb: 1, fontFamily: 'Inter, Arial, sans-serif' }}>{error}</Typography>
@@ -91,12 +147,15 @@ const LoginPage = () => {
                 >
                   Log In
                 </Button>
-                <div style={{ fontSize: 12, color: '#888', marginTop: 8, textAlign: 'center' }}>
-                  Demo: demo@budgro.com / password123
-                </div>
               </form>
               <Typography variant="body2" sx={{ color: 'text.secondary', mt: 2, fontFamily: 'Inter, Arial, sans-serif', textAlign: 'center' }}>
-                Don&apos;t have an account? <Button href="#" sx={{ color: '#1A4D2E', fontWeight: 600, fontFamily: 'Inter, Arial, sans-serif', textTransform: 'none', p: 0 }}>Sign Up</Button>
+                Don&apos;t have an account?{' '}
+                <span
+                  style={{ color: '#1A4D2E', fontWeight: 600, fontFamily: 'Inter, Arial, sans-serif', cursor: 'pointer', textDecoration: 'underline' }}
+                  onClick={() => navigate('/signup')}
+                >
+                  Sign Up
+                </span>
               </Typography>
             </Box>
           </Grid>

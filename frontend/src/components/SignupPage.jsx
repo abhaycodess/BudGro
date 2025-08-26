@@ -3,7 +3,45 @@ import { Box, Button, Container, Grid, TextField, Typography } from '@mui/materi
 import SignupPageVector from '../assets/SignupPageVector.png';
 import GoogleIcon from '@mui/icons-material/Google';
 
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+
 const SignupPage = () => {
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+  const navigate = useNavigate();
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+    setSuccess('');
+    if (password !== confirmPassword) {
+      setError('Passwords do not match');
+      return;
+    }
+  // setLoading(true);
+    try {
+      const res = await fetch('http://localhost:3002/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, email, password })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setSuccess('Registration successful! Redirecting to login...');
+        setTimeout(() => navigate('/login'), 1500);
+      } else {
+        setError(data.error || 'Registration failed');
+      }
+    } catch {
+      setError('Network error. Please try again.');
+    }
+  };
+
   return (
     <Box sx={{ bgcolor: 'background.default', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', py: { xs: 6, md: 0 } }}>
       <Container maxWidth="lg">
@@ -62,12 +100,14 @@ const SignupPage = () => {
               >
                 Sign up with Google
               </Button>
-              <form>
+              <form onSubmit={handleSubmit}>
                 <TextField
                   label="Full Name"
                   type="text"
                   fullWidth
                   required
+                  value={name}
+                  onChange={e => setName(e.target.value)}
                   variant="outlined"
                   margin="normal"
                   sx={{ mb: 2, bgcolor: '#fff', borderRadius: 2 }}
@@ -79,6 +119,8 @@ const SignupPage = () => {
                   type="email"
                   fullWidth
                   required
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
                   variant="outlined"
                   margin="normal"
                   sx={{ mb: 2, bgcolor: '#fff', borderRadius: 2 }}
@@ -90,6 +132,8 @@ const SignupPage = () => {
                   type="password"
                   fullWidth
                   required
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
                   variant="outlined"
                   margin="normal"
                   sx={{ mb: 2, bgcolor: '#fff', borderRadius: 2 }}
@@ -101,17 +145,22 @@ const SignupPage = () => {
                   type="password"
                   fullWidth
                   required
+                  value={confirmPassword}
+                  onChange={e => setConfirmPassword(e.target.value)}
                   variant="outlined"
                   margin="normal"
                   sx={{ mb: 2, bgcolor: '#fff', borderRadius: 2 }}
                   InputLabelProps={{ style: { fontFamily: 'Inter, Arial, sans-serif' } }}
                   inputProps={{ style: { fontFamily: 'Inter, Arial, sans-serif' } }}
                 />
+                {error && <Typography color="error" sx={{ mb: 1 }}>{error}</Typography>}
+                {success && <Typography color="primary" sx={{ mb: 1 }}>{success}</Typography>}
                 <Button
                   type="submit"
                   variant="contained"
                   color="primary"
                   fullWidth
+                  // disabled={loading}
                   sx={{ py: 1.5, fontWeight: 700, fontSize: '1.1rem', borderRadius: 3, mt: 2, mb: 1, fontFamily: 'Inter, Arial, sans-serif', background: '#1A4D2E', boxShadow: 'none', '&:hover': { background: '#16381F' } }}
                 >
                   Sign Up

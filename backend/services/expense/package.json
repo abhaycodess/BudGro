@@ -1,0 +1,14 @@
+{
+  "name": "expense-service",
+  "version": "1.0.0",
+  "main": "src/api/index.js",
+  "scripts": {
+    "start": "node src/api/index.js"
+  },
+  "dependencies": {
+    "express": "^5.1.0",
+    "mongoose": "^8.3.2",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.1"
+  }
+}

@@ -1,0 +1,43 @@
+version: '3.8'
+services:
+  mongo:
+    image: mongo:6.0
+    container_name: mongo
+    restart: always
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: example
+    volumes:
+      - mongo-data:/data/db
+    # Optionally, add a network if needed
+    # networks:
+    #   - backend
+  user-service:
+    build: ./backend/services/user
+    ports:
+      - "3002:3002"
+    environment:
+      - PORT=3002
+      - MONGO_URI=mongodb://root:example@mongo:27017/budgro-user?authSource=admin
+    restart: unless-stopped
+  expense-service:
+    build: ./backend/services/expense
+    ports:
+      - "3003:3003"
+    environment:
+      - PORT=3003
+      - MONGO_URI=mongodb://mongo:27017/budgro-expense
+    restart: unless-stopped
+  ai-ocr-service:
+    build: ./backend/services/ai-ocr
+    ports:
+      - "3004:3004"
+    environment:
+      - PORT=3004
+    restart: unless-stopped
+# Add more services as needed
+
+volumes:
+  mongo-data:
