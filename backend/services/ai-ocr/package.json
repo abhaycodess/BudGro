@@ -1,0 +1,22 @@
+{
+  "name": "ai-ocr",
+  "version": "1.0.0",
+  "description": "AI-powered OCR microservice for expense tracker",
+  "main": "src/api/index.js",
+  "scripts": {
+    "start": "node src/api/index.js",
+    "dev": "nodemon src/api/index.js"
+  },
+  "keywords": [
+    "ocr",
+    "ai",
+    "microservice"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^5.1.0",
+    "multer": "^2.0.2",
+    "tesseract.js": "^6.0.1"
+  }
+}

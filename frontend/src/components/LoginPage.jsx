@@ -1,8 +1,29 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Box, Button, Container, Grid, TextField, Typography } from '@mui/material';
 import LoginPageVector from '../assets/LoginPageVector.png';
 
+const DUMMY_USER = {
+  email: 'demo@budgro.com',
+  password: 'password123',
+};
+
 const LoginPage = () => {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const navigate = useNavigate();
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (email === DUMMY_USER.email && password === DUMMY_USER.password) {
+      localStorage.setItem('budgro_logged_in', 'true');
+      navigate('/dashboard');
+    } else {
+      setError('Invalid credentials. Use demo@budgro.com / password123');
+    }
+  };
+
   return (
     <Box sx={{ bgcolor: 'background.default', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', py: { xs: 6, md: 0 } }}>
       <Container maxWidth="lg">
@@ -31,7 +52,7 @@ const LoginPage = () => {
               <Typography variant="body1" sx={{ color: 'text.secondary', mb: 4, fontFamily: 'Inter, Arial, sans-serif' }}>
                 Log in to your BUDGRO account to manage your expenses and budgets.
               </Typography>
-              <form>
+              <form onSubmit={handleSubmit}>
                 <TextField
                   label="Email"
                   type="email"
@@ -42,6 +63,8 @@ const LoginPage = () => {
                   sx={{ mb: 2, bgcolor: '#fff', borderRadius: 2 }}
                   InputLabelProps={{ style: { fontFamily: 'Inter, Arial, sans-serif' } }}
                   inputProps={{ style: { fontFamily: 'Inter, Arial, sans-serif' } }}
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
                 />
                 <TextField
                   label="Password"
@@ -53,7 +76,12 @@ const LoginPage = () => {
                   sx={{ mb: 2, bgcolor: '#fff', borderRadius: 2 }}
                   InputLabelProps={{ style: { fontFamily: 'Inter, Arial, sans-serif' } }}
                   inputProps={{ style: { fontFamily: 'Inter, Arial, sans-serif' } }}
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
                 />
+                {error && (
+                  <Typography color="error" sx={{ mb: 1, fontFamily: 'Inter, Arial, sans-serif' }}>{error}</Typography>
+                )}
                 <Button
                   type="submit"
                   variant="contained"
@@ -63,6 +91,9 @@ const LoginPage = () => {
                 >
                   Log In
                 </Button>
+                <div style={{ fontSize: 12, color: '#888', marginTop: 8, textAlign: 'center' }}>
+                  Demo: demo@budgro.com / password123
+                </div>
               </form>
               <Typography variant="body2" sx={{ color: 'text.secondary', mt: 2, fontFamily: 'Inter, Arial, sans-serif', textAlign: 'center' }}>
                 Don&apos;t have an account? <Button href="#" sx={{ color: '#1A4D2E', fontWeight: 600, fontFamily: 'Inter, Arial, sans-serif', textTransform: 'none', p: 0 }}>Sign Up</Button>
