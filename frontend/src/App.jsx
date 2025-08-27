@@ -1,16 +1,22 @@
 import React, { useEffect } from 'react';
 import { createTheme, ThemeProvider } from '@mui/material/styles';
-import { AppBar, Box, Button, Container, CssBaseline, Grid, Toolbar, Typography, Avatar, Menu, MenuItem, IconButton, Tooltip, Divider, ListItemIcon } from '@mui/material';
+import { AppBar, Box, Button, Container, CssBaseline, Grid, Toolbar, Typography, Avatar, Menu, MenuItem, IconButton, Tooltip, Divider, ListItemIcon, Popover } from '@mui/material';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import LogoutIcon from '@mui/icons-material/Logout';
 import budgroLogo from "./assets/budgro-favicon.svg";
+import individualIcon from './assets/individual.png';
+import teamIcon from './assets/team.png';
 import HeroSectionVector from '../../HeroSectionvector.png';
 import LandingPage1 from "./assets/LandingPage1.png";
 import LandingPage2 from "./assets/LandingPage2.png";
 import LandingPage3 from "./assets/LandingPage3.png";
+import LandingPromptModal from './components/LandingPromptModal';
 import LoginPage from './components/LoginPage';
 import SignupPage from './components/SignupPage';
+import OrgLoginPage from './components/OrgLoginPage';
+import OrgSignupPage from './components/OrgSignupPage';
+import OrgDashboard from './components/OrgDashboard';
 import ProtectedRoute from './components/ProtectedRoute';
 import AccountPage from './components/AccountPage';
 import DashboardRoute from './routes/DashboardRoute';
@@ -95,6 +101,7 @@ const theme = createTheme({
   },
 });
 
+
 function App() {
   const location = useLocation();
   useEffect(() => {
@@ -110,9 +117,16 @@ function App() {
         <Route path="/" element={<LandingPageContent />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/signup" element={<SignupPage />} />
+  <Route path="/org-login" element={<OrgLoginPage />} />
+  <Route path="/org-signup" element={<OrgSignupPage />} />
         <Route path="/dashboard" element={
           <ProtectedRoute>
-            <DashboardRoute />
+            <OrgDashboardRedirectWrapper><DashboardRoute /></OrgDashboardRedirectWrapper>
+          </ProtectedRoute>
+        } />
+        <Route path="/org-dashboard" element={
+          <ProtectedRoute>
+            <OrgDashboard />
           </ProtectedRoute>
         } />
         <Route path="/expenses" element={
@@ -150,6 +164,8 @@ function NavbarWithLogin() {
   const isLoggedIn = !!token;
   const username = user?.email || '';
   const name = user?.name || '';
+  // Detect org user (simple: check user.role or user.type, fallback to email containing 'org' as a demo)
+  const isOrgUser = user?.role === 'Organization' || user?.type === 'Organization' || (username && username.includes('org'));
   // Always generate avatar based on logged-in user's email unless a custom avatar is uploaded
   const [profilePic, setProfilePic] = React.useState(() => {
     return localStorage.getItem('budgro_avatar') || (username ? `https://avatar.iran.liara.run/public/boy?username=${encodeURIComponent(username)}` : undefined);
@@ -181,20 +197,30 @@ function NavbarWithLogin() {
     navigate('/login');
   };
 
+  // Dropdown state for icons
+  const [indAnchor, setIndAnchor] = React.useState(null);
+  const [orgAnchor, setOrgAnchor] = React.useState(null);
+  const openInd = Boolean(indAnchor);
+  const openOrg = Boolean(orgAnchor);
+  const handleIndClick = (e) => setIndAnchor(e.currentTarget);
+  const handleOrgClick = (e) => setOrgAnchor(e.currentTarget);
+  const handleIndClose = () => setIndAnchor(null);
+  const handleOrgClose = () => setOrgAnchor(null);
+
   return (
     <AppBar position="static" color="transparent" elevation={0} sx={{ boxShadow: 'none', background: 'transparent', pt: 2 }}>
       <Toolbar sx={{ maxWidth: 1200, mx: 'auto', width: '100%', minHeight: 72, px: { xs: 2, md: 4 } }}>
-  <Box sx={{ display: 'flex', alignItems: 'center', flexGrow: 1 }}>
-    <Box
-      component={Link}
-      to={isLoggedIn ? "/dashboard" : "/"}
-      sx={{ display: 'flex', alignItems: 'center', textDecoration: 'none', cursor: 'pointer', mr: 4 }}
-    >
-      <img src={budgroLogo} alt="BUDGRO logo" style={{ height: 36, marginRight: 12 }} />
-      <Typography variant="h5" color="text.primary" sx={{ fontFamily: 'Cormorant Garamond, serif', fontWeight: 600, letterSpacing: -1 }}>
-        BUDGRO
-      </Typography>
-    </Box>
+        <Box sx={{ display: 'flex', alignItems: 'center', flexGrow: 1 }}>
+          <Box
+            component={Link}
+            to={isLoggedIn ? "/dashboard" : "/"}
+            sx={{ display: 'flex', alignItems: 'center', textDecoration: 'none', cursor: 'pointer', mr: 4 }}
+          >
+            <img src={budgroLogo} alt="BUDGRO logo" style={{ height: 36, marginRight: 12 }} />
+            <Typography variant="h5" color="text.primary" sx={{ fontFamily: 'Cormorant Garamond, serif', fontWeight: 600, letterSpacing: -1 }}>
+              BUDGRO
+            </Typography>
+          </Box>
           <Box sx={{ display: { xs: 'none', md: 'flex' }, gap: 2 }}>
             <Button component={Link} to="/about" color="inherit" sx={{ fontFamily: 'Inter, Arial, sans-serif', fontWeight: 500, fontSize: 16, px: 2, minWidth: 0 }}>About</Button>
             <Button component={Link} to="/why-us" color="inherit" sx={{ fontFamily: 'Inter, Arial, sans-serif', fontWeight: 500, fontSize: 16, px: 2, minWidth: 0 }}>Why us</Button>
@@ -207,12 +233,22 @@ function NavbarWithLogin() {
             <>
               <Button
                 component={Link}
-                to="/expenses"
+                to={isOrgUser ? "/org-dashboard" : "/dashboard"}
                 color="inherit"
                 sx={{ fontFamily: 'Inter, Arial, sans-serif', fontWeight: 500, fontSize: 16, px: 2, minWidth: 0 }}
               >
-                Expenses
+                Dashboard
               </Button>
+              {!isOrgUser && (
+                <Button
+                  component={Link}
+                  to="/expenses"
+                  color="inherit"
+                  sx={{ fontFamily: 'Inter, Arial, sans-serif', fontWeight: 500, fontSize: 16, px: 2, minWidth: 0 }}
+                >
+                  Expenses
+                </Button>
+              )}
               <Tooltip title="Account settings">
                 <IconButton onClick={handleMenu} size="small" sx={{ ml: 2 }} aria-controls={open ? 'account-menu' : undefined} aria-haspopup="true" aria-expanded={open ? 'true' : undefined}>
                   <Avatar src={profilePic} alt={username} sx={{ width: 40, height: 40, border: '2px solid #1A4D2E' }} />
@@ -268,39 +304,36 @@ function NavbarWithLogin() {
             </>
           ) : (
             <>
-              <Button
-                color="inherit"
-                sx={{
-                  fontFamily: 'Inter, Arial, sans-serif',
-                  fontWeight: 500,
-                  fontSize: 16,
-                  px: 2,
-                  minWidth: 0,
-                  borderRadius: 999,
-                  textTransform: 'none',
-                  boxShadow: 'none',
-                }}
-                onClick={() => navigate('/login')}
+              {/* Individual Icon */}
+              <IconButton onClick={handleIndClick} sx={{ p: 0.5, borderRadius: 1, background: 'none', border: 'none', boxShadow: 'none', mr: 1 }}>
+                <img src={individualIcon} alt="Individual/Freelancer" style={{ width: 44, height: 44, borderRadius: 0 }} />
+              </IconButton>
+              <Popover
+                open={openInd}
+                anchorEl={indAnchor}
+                onClose={handleIndClose}
+                anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+                transformOrigin={{ vertical: 'top', horizontal: 'center' }}
+                PaperProps={{ sx: { borderRadius: 1, minWidth: 160, p: 1, boxShadow: 3, fontFamily: 'Inter, Arial, sans-serif' } }}
               >
-                Login
-              </Button>
-              <Button
-                color="inherit"
-                sx={{
-                  fontFamily: 'Inter, Arial, sans-serif',
-                  fontWeight: 500,
-                  fontSize: 16,
-                  px: 2,
-                  minWidth: 0,
-                  borderRadius: 999,
-                  ml: 2,
-                  textTransform: 'none',
-                  boxShadow: 'none',
-                }}
-                onClick={() => navigate('/signup')}
+                <MenuItem onClick={() => { handleIndClose(); navigate('/login'); }} sx={{ fontFamily: 'Inter, Arial, sans-serif', fontWeight: 500, fontSize: 16 }}>Login</MenuItem>
+                <MenuItem onClick={() => { handleIndClose(); navigate('/signup'); }} sx={{ fontFamily: 'Inter, Arial, sans-serif', fontWeight: 500, fontSize: 16 }}>Sign Up</MenuItem>
+              </Popover>
+              {/* Organization Icon */}
+              <IconButton onClick={handleOrgClick} sx={{ p: 0.5, borderRadius: 1, background: 'none', border: 'none', boxShadow: 'none' }}>
+                <img src={teamIcon} alt="Organization/Microbusiness" style={{ width: 44, height: 44, borderRadius: 0 }} />
+              </IconButton>
+              <Popover
+                open={openOrg}
+                anchorEl={orgAnchor}
+                onClose={handleOrgClose}
+                anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+                transformOrigin={{ vertical: 'top', horizontal: 'center' }}
+                PaperProps={{ sx: { borderRadius: 1, minWidth: 180, p: 1, boxShadow: 3, fontFamily: 'Inter, Arial, sans-serif' } }}
               >
-                Sign up
-              </Button>
+                <MenuItem onClick={() => { handleOrgClose(); navigate('/org-login'); }} sx={{ fontFamily: 'Inter, Arial, sans-serif', fontWeight: 500, fontSize: 16 }}>Login</MenuItem>
+                <MenuItem onClick={() => { handleOrgClose(); navigate('/org-signup'); }} sx={{ fontFamily: 'Inter, Arial, sans-serif', fontWeight: 500, fontSize: 16 }}>Sign Up</MenuItem>
+              </Popover>
             </>
           )}
         </Box>
@@ -312,6 +345,7 @@ function NavbarWithLogin() {
 function LandingPageContent() {
   const navigate = useNavigate();
   const [email, setEmail] = React.useState('');
+  const [showPrompt, setShowPrompt] = React.useState(false);
   // If already logged in, redirect to dashboard
   React.useEffect(() => {
     const token = localStorage.getItem('budgro_token');
@@ -320,14 +354,36 @@ function LandingPageContent() {
     }
   }, [navigate]);
 
+  // Show prompt after 10 seconds
+  React.useEffect(() => {
+    const timer = setTimeout(() => setShowPrompt(true), 10000);
+    return () => clearTimeout(timer);
+  }, []);
+
   const handleGetStarted = () => {
     if (email && email.includes('@')) {
       navigate('/login', { state: { email } });
     }
   };
 
+  const handlePromptClose = () => setShowPrompt(false);
+  const handleIndividual = () => {
+    setShowPrompt(false);
+    navigate('/signup');
+  };
+  const handleOrg = () => {
+    setShowPrompt(false);
+    navigate('/org-signup');
+  };
+
   return (
     <>
+      <LandingPromptModal
+        open={showPrompt}
+        onClose={handlePromptClose}
+        onIndividual={handleIndividual}
+        onOrg={handleOrg}
+      />
       {/* Hero Section */}
       <Box sx={{ bgcolor: 'background.default', py: { xs: 8, md: 12 }, minHeight: '80vh' }}>
         <Container maxWidth="lg">
@@ -461,4 +517,31 @@ function AppWithRouter() {
   );
 }
 
+
 export default AppWithRouter;
+
+// Wrapper to prevent org users from accessing the individual dashboard
+function OrgDashboardRedirectWrapper({ children }) {
+  const navigate = useNavigate();
+  React.useEffect(() => {
+    let user = null;
+    try {
+      user = JSON.parse(localStorage.getItem('budgro_user'));
+  } catch {
+      user = null;
+    }
+    const isOrgUser = user && (user.role === 'Organization' || user.type === 'Organization' || (user.email && user.email.includes('org')));
+    if (isOrgUser) {
+      navigate('/org-dashboard', { replace: true });
+    }
+  }, [navigate]);
+  let user = null;
+  try {
+    user = JSON.parse(localStorage.getItem('budgro_user'));
+  } catch {
+    user = null;
+  }
+  const isOrgUser = user && (user.role === 'Organization' || user.type === 'Organization' || (user.email && user.email.includes('org')));
+  if (isOrgUser) return null;
+  return children;
+}

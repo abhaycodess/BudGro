@@ -1,0 +1,20 @@
+/* Global form input background and focus style for all forms */
+input, textarea, select {
+  background: #fff !important;
+  box-shadow: none !important;
+  outline: none !important;
+  border-radius: 8px;
+}
+input:focus, textarea:focus, select:focus {
+  background: #fff !important;
+  box-shadow: 0 0 0 2px #1A4D2E22 !important;
+  outline: none !important;
+}
+/* Remove autofill blue for Chrome */
+input:-webkit-autofill,
+textarea:-webkit-autofill,
+select:-webkit-autofill {
+  -webkit-box-shadow: 0 0 0 1000px #fff inset !important;
+  box-shadow: 0 0 0 1000px #fff inset !important;
+  -webkit-text-fill-color: #222 !important;
+}

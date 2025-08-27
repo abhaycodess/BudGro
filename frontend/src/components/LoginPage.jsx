@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Box, Button, Container, Grid, TextField, Typography, IconButton, InputAdornment } from '@mui/material';
 import Visibility from '@mui/icons-material/Visibility';
@@ -62,7 +63,7 @@ const LoginPage = () => {
   };
 
   return (
-    <Box sx={{ bgcolor: 'background.default', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', py: { xs: 6, md: 0 } }}>
+    <Box sx={{ bgcolor: 'background.default', minHeight: '100vh', py: 8 }}>
       <Container maxWidth="lg">
         <Grid
           container
@@ -89,6 +90,24 @@ const LoginPage = () => {
               <Typography variant="body1" sx={{ color: 'text.secondary', mb: 4, fontFamily: 'Inter, Arial, sans-serif' }}>
                 Log in to your BUDGRO account to manage your expenses and budgets.
               </Typography>
+              {/* Org prompt below description, styled with Cormorant Garamond */}
+              <Box sx={{ mb: 3, textAlign: 'left' }}>
+                <Typography variant="subtitle1" sx={{ fontFamily: 'Cormorant Garamond, serif', color: 'secondary.main', fontWeight: 600, fontSize: 20, mb: 1 }}>
+                  Are you a team, group, or microbusiness?
+                </Typography>
+                <Typography variant="body2" sx={{ fontFamily: 'Cormorant Garamond, serif', color: '#1A4D2E', fontWeight: 500, mb: 1 }}>
+                  Switch to organization login for collaborative expense management and business features.
+                </Typography>
+                <Button
+                  variant="outlined"
+                  color="secondary"
+                  component={Link}
+                  to="/org-login"
+                  sx={{ mt: 1, borderRadius: 3, fontWeight: 600, fontFamily: 'Cormorant Garamond, serif', fontSize: 17, px: 3, py: 1, textTransform: 'none' }}
+                >
+                  Organization Login
+                </Button>
+              </Box>
               <form onSubmit={handleSubmit}>
                 <TextField
                   label="Email"
@@ -97,14 +116,11 @@ const LoginPage = () => {
                   required
                   variant="outlined"
                   margin="normal"
-                  sx={{ mb: 2 }}
+                  sx={{ mb: 2, borderRadius: 2, bgcolor: 'background.paper', backgroundColor: 'background.paper' }}
                   InputLabelProps={{ style: { fontFamily: 'Inter, Arial, sans-serif' } }}
                   inputProps={{ style: { fontFamily: 'Inter, Arial, sans-serif' } }}
                   value={email}
                   onChange={e => setEmail(e.target.value)}
-                  InputProps={{
-                    sx: { bgcolor: '#e9f2ff', borderRadius: 2 },
-                  }}
                 />
                 <TextField
                   label="Password"
@@ -113,7 +129,7 @@ const LoginPage = () => {
                   required
                   variant="outlined"
                   margin="normal"
-                  sx={{ mb: 2 }}
+                  sx={{ mb: 2, borderRadius: 2 }}
                   InputLabelProps={{ style: { fontFamily: 'Inter, Arial, sans-serif' } }}
                   inputProps={{ style: { fontFamily: 'Inter, Arial, sans-serif' } }}
                   value={password}
@@ -132,7 +148,7 @@ const LoginPage = () => {
                         </IconButton>
                       </InputAdornment>
                     ),
-                    sx: { bgcolor: '#e9f2ff', borderRadius: 2 },
+                    style: { backgroundColor: 'white' },
                   }}
                 />
                 {error && (
@@ -157,6 +173,7 @@ const LoginPage = () => {
                   Sign Up
                 </span>
               </Typography>
+              {/* Only one org login button, above, so remove this extra link */}
             </Box>
           </Grid>
         </Grid>

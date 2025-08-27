@@ -1,5 +1,8 @@
 import React from 'react';
-import { Box, Button, Container, Grid, TextField, Typography } from '@mui/material';
+import { Link } from 'react-router-dom';
+import { Box, Button, Container, Grid, TextField, Typography, IconButton, InputAdornment } from '@mui/material';
+import Visibility from '@mui/icons-material/Visibility';
+import VisibilityOff from '@mui/icons-material/VisibilityOff';
 import SignupPageVector from '../assets/SignupPageVector.png';
 import GoogleIcon from '@mui/icons-material/Google';
 
@@ -13,6 +16,8 @@ const SignupPage = () => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
@@ -110,7 +115,7 @@ const SignupPage = () => {
                   onChange={e => setName(e.target.value)}
                   variant="outlined"
                   margin="normal"
-                  sx={{ mb: 2, bgcolor: '#fff', borderRadius: 2 }}
+                  sx={{ mb: 2, borderRadius: 2 }}
                   InputLabelProps={{ style: { fontFamily: 'Inter, Arial, sans-serif' } }}
                   inputProps={{ style: { fontFamily: 'Inter, Arial, sans-serif' } }}
                 />
@@ -123,35 +128,65 @@ const SignupPage = () => {
                   onChange={e => setEmail(e.target.value)}
                   variant="outlined"
                   margin="normal"
-                  sx={{ mb: 2, bgcolor: '#fff', borderRadius: 2 }}
+                  sx={{ mb: 2, borderRadius: 2 }}
                   InputLabelProps={{ style: { fontFamily: 'Inter, Arial, sans-serif' } }}
                   inputProps={{ style: { fontFamily: 'Inter, Arial, sans-serif' } }}
                 />
                 <TextField
                   label="Password"
-                  type="password"
+                  type={showPassword ? 'text' : 'password'}
                   fullWidth
                   required
                   value={password}
                   onChange={e => setPassword(e.target.value)}
                   variant="outlined"
                   margin="normal"
-                  sx={{ mb: 2, bgcolor: '#fff', borderRadius: 2 }}
+                  sx={{ mb: 2, borderRadius: 2 }}
                   InputLabelProps={{ style: { fontFamily: 'Inter, Arial, sans-serif' } }}
                   inputProps={{ style: { fontFamily: 'Inter, Arial, sans-serif' } }}
+                  InputProps={{
+                    endAdornment: (
+                      <InputAdornment position="end">
+                        <IconButton
+                          aria-label={showPassword ? 'Hide password' : 'Show password'}
+                          onClick={() => setShowPassword((show) => !show)}
+                          edge="end"
+                          size="large"
+                          tabIndex={-1}
+                        >
+                          {showPassword ? <VisibilityOff /> : <Visibility />}
+                        </IconButton>
+                      </InputAdornment>
+                    ),
+                  }}
                 />
                 <TextField
                   label="Confirm Password"
-                  type="password"
+                  type={showConfirmPassword ? 'text' : 'password'}
                   fullWidth
                   required
                   value={confirmPassword}
                   onChange={e => setConfirmPassword(e.target.value)}
                   variant="outlined"
                   margin="normal"
-                  sx={{ mb: 2, bgcolor: '#fff', borderRadius: 2 }}
+                  sx={{ mb: 2, borderRadius: 2 }}
                   InputLabelProps={{ style: { fontFamily: 'Inter, Arial, sans-serif' } }}
                   inputProps={{ style: { fontFamily: 'Inter, Arial, sans-serif' } }}
+                  InputProps={{
+                    endAdornment: (
+                      <InputAdornment position="end">
+                        <IconButton
+                          aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
+                          onClick={() => setShowConfirmPassword((show) => !show)}
+                          edge="end"
+                          size="large"
+                          tabIndex={-1}
+                        >
+                          {showConfirmPassword ? <VisibilityOff /> : <Visibility />}
+                        </IconButton>
+                      </InputAdornment>
+                    ),
+                  }}
                 />
                 {error && <Typography color="error" sx={{ mb: 1 }}>{error}</Typography>}
                 {success && <Typography color="primary" sx={{ mb: 1 }}>{success}</Typography>}
