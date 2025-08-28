@@ -24,6 +24,7 @@ import About from './components/AboutPage';
 import WhyUsPage from './components/WhyUsPage';
 import BlogPage from './components/BlogPage';
 import ExpensePage from './components/ExpensePage';
+import FloatingSidebar from './components/FloatingSidebar';
 import { BrowserRouter as Router, Routes, Route, useNavigate, useLocation, Link } from 'react-router-dom';
 import AOS from 'aos';
 import 'aos/dist/aos.css';
@@ -109,16 +110,19 @@ function App() {
     AOS.refresh();
   }, [location]);
 
+  // ...existing code...
+  const token = localStorage.getItem('budgro_token');
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <NavbarWithLogin />
+      {token && <FloatingSidebar />}
       <Routes>
         <Route path="/" element={<LandingPageContent />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/signup" element={<SignupPage />} />
-  <Route path="/org-login" element={<OrgLoginPage />} />
-  <Route path="/org-signup" element={<OrgSignupPage />} />
+        <Route path="/org-login" element={<OrgLoginPage />} />
+        <Route path="/org-signup" element={<OrgSignupPage />} />
         <Route path="/dashboard" element={
           <ProtectedRoute>
             <OrgDashboardRedirectWrapper><DashboardRoute /></OrgDashboardRedirectWrapper>

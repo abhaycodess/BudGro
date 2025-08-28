@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Box, Typography, Button, IconButton, Fade, TextField, Dialog, DialogTitle, DialogContent, DialogActions, Slide } from '@mui/material';
+import * as XLSX from 'xlsx';
+import { useExpenseUpdate } from '../context/useExpenseUpdate.js';
+import { Box, Typography, Button, IconButton, Fade, TextField, Dialog, DialogTitle, DialogContent, DialogActions, Slide, Snackbar, Alert, CircularProgress } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -78,6 +80,104 @@ const ExpenseDialog = ({ open, onClose, onSave, initialData, isEdit }) => {
 };
 
 const ExpensePage = () => {
+  const [ocrLoading, setOcrLoading] = useState(false);
+  const [ocrError, setOcrError] = useState(false);
+  const [ocrSuccess, setOcrSuccess] = useState(false);
+  // Handle bill upload and OCR/Extraction
+  const handleBillUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setOcrLoading(true);
+    setOcrError(false);
+    setOcrSuccess(false);
+    const ext = file.name.split('.').pop().toLowerCase();
+    try {
+      if (["csv", "xls", "xlsx"].includes(ext)) {
+        // Handle CSV/Excel client-side
+        const reader = new FileReader();
+        reader.onload = (evt) => {
+          let data = evt.target.result;
+          let workbook = XLSX.read(data, { type: 'binary' });
+          let firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+          let json = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
+          if (json.length > 1) {
+            // Assume first row is header, second row is data
+            const headers = json[0].map(h => h.toString().toLowerCase());
+            const row = json[1];
+            const expense = {};
+            headers.forEach((h, i) => {
+              if (h.includes('amount')) expense.amount = parseFloat(row[i]);
+              if (h.includes('desc') || h.includes('purpose') || h.includes('title')) expense.title = row[i];
+              if (h.includes('date')) expense.date = row[i];
+              if (h.includes('category')) expense.category = row[i];
+              if (h.includes('note')) expense.notes = row[i];
+            });
+            if (!expense.amount || !expense.title) {
+              setOcrError(true);
+              setOcrLoading(false);
+              return;
+            }
+            handleAddExpense({
+              ...expense,
+              category: expense.category || 'Bills',
+              notes: expense.notes || 'Added via spreadsheet',
+              date: expense.date || new Date().toLocaleDateString(),
+              time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+            });
+            setOcrSuccess(true);
+          } else {
+            setOcrError(true);
+          }
+          setOcrLoading(false);
+        };
+        reader.onerror = () => {
+          setOcrError(true);
+          setOcrLoading(false);
+        };
+        reader.readAsBinaryString(file);
+        return;
+      } else if (ext === "pdf" || ["jpg", "jpeg", "png", "bmp", "gif", "webp"].includes(ext)) {
+        // Send image or PDF to backend for extraction
+        const formData = new FormData();
+        formData.append('file', file);
+        const res = await fetch('http://localhost:3001/upload-bill', {
+          method: 'POST',
+          credentials: 'include',
+          body: formData,
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          setOcrError(true);
+          setOcrLoading(false);
+          return;
+        }
+        if (!data.expense) {
+          setOcrError(true);
+          setOcrLoading(false);
+          return;
+        }
+        // Add returned expense to local state
+        handleAddExpense({
+          title: data.expense.vendor || 'Bill Expense',
+          amount: data.expense.amount,
+          category: data.expense.category || 'Uncategorized',
+          notes: data.expense.paymentMethod ? `Paid via ${data.expense.paymentMethod}` : 'Added via Bill Upload',
+          date: new Date(data.expense.date).toLocaleDateString(),
+          time: new Date(data.expense.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        });
+        setOcrSuccess(true);
+        setOcrLoading(false);
+        return;
+      } else {
+        setOcrError(true);
+        setOcrLoading(false);
+        return;
+      }
+    } catch {
+      setOcrError(true);
+      setOcrLoading(false);
+    }
+  };
   const [expenses, setExpenses] = useState(() => {
     try {
       return JSON.parse(localStorage.getItem('budgro_expenses')) || [];
@@ -95,12 +195,15 @@ const ExpensePage = () => {
     localStorage.setItem('budgro_expenses', JSON.stringify(expenses));
   }, [expenses]);
 
+  const { triggerUpdate } = useExpenseUpdate();
   const handleAddExpense = (expense) => {
     setExpenses(prev => [expense, ...prev]);
+    triggerUpdate();
   };
 
   const handleDeleteExpense = (idx) => {
     setExpenses(prev => prev.filter((_, i) => i !== idx));
+    triggerUpdate();
   };
 
   const handleEditExpense = (idx) => {
@@ -120,6 +223,7 @@ const ExpensePage = () => {
     });
     setEditOpen(false);
     setEditIdx(null);
+    triggerUpdate();
   };
 
   if (!isLoggedIn) {
@@ -134,12 +238,30 @@ const ExpensePage = () => {
 
   return (
     <Box sx={{ minHeight: '80vh', bgcolor: 'background.default', py: 6, px: { xs: 1, md: 6 }, fontFamily: 'Inter, Arial, sans-serif' }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 4 }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 4, gap: 2 }}>
         <Typography variant="h4" sx={{ fontWeight: 700, color: 'primary.main', fontFamily: 'Cormorant Garamond, serif' }}>My Expenses</Typography>
-        <Button variant="contained" color="primary" startIcon={<AddIcon />} onClick={() => setAddOpen(true)} sx={{ fontWeight: 700, fontSize: 18, borderRadius: 3, px: 4, py: 1.5, boxShadow: 0 }}>
-          Add Expense
-        </Button>
+        <Box sx={{ display: 'flex', gap: 2 }}>
+          <Button variant="contained" color="primary" startIcon={<AddIcon />} onClick={() => setAddOpen(true)} sx={{ fontWeight: 700, fontSize: 18, borderRadius: 3, px: 4, py: 1.5, boxShadow: 0 }}>
+            Add Expense
+          </Button>
+          <Button variant="outlined" component="label" sx={{ fontWeight: 700, fontSize: 16, borderRadius: 3, px: 2, py: 1, boxShadow: 0, minWidth: 0 }}>
+            {ocrLoading ? <CircularProgress size={22} color="inherit" /> : 'Upload a Bill'}
+            <input type="file" accept="image/*,.pdf,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" hidden onChange={handleBillUpload} />
+          </Button>
+        </Box>
       </Box>
+      {/* Snackbar for OCR error */}
+      <Snackbar open={ocrError} autoHideDuration={4000} onClose={() => setOcrError(false)} anchorOrigin={{ vertical: 'top', horizontal: 'center' }}>
+        <Alert onClose={() => setOcrError(false)} severity="warning" sx={{ width: '100%', fontWeight: 600, fontSize: 16, fontFamily: 'Inter' }}>
+          Upload a real bill
+        </Alert>
+      </Snackbar>
+      {/* Snackbar for OCR success */}
+      <Snackbar open={ocrSuccess} autoHideDuration={2500} onClose={() => setOcrSuccess(false)} anchorOrigin={{ vertical: 'top', horizontal: 'center' }}>
+        <Alert onClose={() => setOcrSuccess(false)} severity="success" sx={{ width: '100%', fontWeight: 600, fontSize: 16, fontFamily: 'Inter' }}>
+          Expense added from bill!
+        </Alert>
+      </Snackbar>
       <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: 3 }}>
         <Box sx={{ flex: 1, minWidth: 0 }}>
           {expenses.length === 0 ? (

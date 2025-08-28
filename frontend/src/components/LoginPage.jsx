@@ -90,24 +90,7 @@ const LoginPage = () => {
               <Typography variant="body1" sx={{ color: 'text.secondary', mb: 4, fontFamily: 'Inter, Arial, sans-serif' }}>
                 Log in to your BUDGRO account to manage your expenses and budgets.
               </Typography>
-              {/* Org prompt below description, styled with Cormorant Garamond */}
-              <Box sx={{ mb: 3, textAlign: 'left' }}>
-                <Typography variant="subtitle1" sx={{ fontFamily: 'Cormorant Garamond, serif', color: 'secondary.main', fontWeight: 600, fontSize: 20, mb: 1 }}>
-                  Are you a team, group, or microbusiness?
-                </Typography>
-                <Typography variant="body2" sx={{ fontFamily: 'Cormorant Garamond, serif', color: '#1A4D2E', fontWeight: 500, mb: 1 }}>
-                  Switch to organization login for collaborative expense management and business features.
-                </Typography>
-                <Button
-                  variant="outlined"
-                  color="secondary"
-                  component={Link}
-                  to="/org-login"
-                  sx={{ mt: 1, borderRadius: 3, fontWeight: 600, fontFamily: 'Cormorant Garamond, serif', fontSize: 17, px: 3, py: 1, textTransform: 'none' }}
-                >
-                  Organization Login
-                </Button>
-              </Box>
+              {/* Org prompt removed as requested */}
               <form onSubmit={handleSubmit}>
                 <TextField
                   label="Email"
